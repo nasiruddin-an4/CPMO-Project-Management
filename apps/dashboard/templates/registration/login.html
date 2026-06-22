@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Team CPMO</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+</head>
+<body>
+  <div class="page-shell" style="max-width:420px; margin-top:60px;">
+    <div class="card">
+      <h2 style="margin-top:0;">Sign in</h2>
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="form-row">
+          <label>Username</label>
+          <input type="text" name="username" required autofocus>
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" name="password" required>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <a href="{% url 'admin:index' %}" style="color:var(--accent);">Admin</a>
+          <button type="submit" class="primary-button">Log in</button>
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+      </form>
+    </div>
+  </div>
+</body>
+</html>

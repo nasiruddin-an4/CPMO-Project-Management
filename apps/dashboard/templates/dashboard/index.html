@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Operation CPMO</title>
+    <link rel="stylesheet" href="{% static 'dashboard/css/style.css' %}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="page-header">
+            <h1>Team 'Operation' - CPMO</h1>
+            {% if request.user.is_authenticated %}
+            <div class="auth-links" style="position:absolute; right:28px; top:28px; display:flex; gap:12px; align-items:center;">
+                {% if request.user.is_superuser %}
+                <a class="auth-link" href="{% url 'admin:index' %}">Admin</a>
+                {% endif %}
+                <a class="auth-link" href="{% url 'logout' %}">Logout</a>
+            </div>
+            {% endif %}
+        </header>
+
+        <section class="announcement-panel">
+            <div class="panel-title">Message for All</div>
+            <textarea id="announcementText" placeholder="Write a shared message here..."></textarea>
+            <button id="saveAnnouncementBtn" class="primary-button">Update Message</button>
+        </section>
+
+        <section class="team-filter-panel">
+            <div class="panel-title">Filter by Team Member</div>
+            <div id="teamButtons" class="member-buttons"></div>
+        </section>
+
+        <section id="mainContent" class="main-content hidden">
+            <div class="card">
+                <div class="card-title">
+                    <h2>Project Progress</h2>
+                    <button id="addProjectBtn" class="secondary-button">Add Project</button>
+                </div>
+                <div id="projectSection"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <h2>To-Do</h2>
+                    <button id="addTodoBtn" class="secondary-button">Add To-Do</button>
+                </div>
+                <div id="todoSection"></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay hidden" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span id="modalTitle"></span>
+                <button id="modalCloseBtn" class="close-button">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <script src="{% static 'dashboard/js/app.js' %}"></script>
+</body>
+</html>
