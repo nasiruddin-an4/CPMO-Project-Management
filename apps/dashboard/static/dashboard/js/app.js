@@ -155,7 +155,7 @@ function renderProjects(projects) {
 
     projects.forEach(project => {
         html.push(`
-            <tr data-project-id="${project.id}">
+            <tr data-project-id="${project.id}" draggable="true">
                 <td>${escapeHtml(project.project_name)}</td>
                 <td>${project.estimated_complete_date || ''}</td>
                 <td>${escapeHtml(project.note)}</td>
@@ -175,6 +175,8 @@ function renderProjects(projects) {
     table.innerHTML = html.join('');
     projectSection.innerHTML = '';
     projectSection.appendChild(table);
+    // enable drag & drop reordering for projects
+    enableRowReorder(table.querySelector('table.data-table'), '/api/project/reorder/', 'data-project-id');
 }
 
 function openProjectDetails(projectId) {
@@ -288,7 +290,7 @@ function renderTodos(todos) {
     }
 
     const html = [
-        '<table class="data-table">',
+        '<table class="data-table todo-table">',
         '<thead><tr>',
         '<th>Done</th><th>Note</th><th>Actions</th>',
         '</tr></thead>',
@@ -296,7 +298,7 @@ function renderTodos(todos) {
     ];
     todos.forEach(todo => {
         html.push(`
-            <tr data-todo-id="${todo.id}">
+            <tr data-todo-id="${todo.id}" draggable="true">
                 <td><input type="checkbox" ${todo.is_completed ? 'checked' : ''} onchange="toggleTodoStatus(${todo.id}, this.checked)"></td>
                 <td class="todo-note">${escapeHtml(todo.note)}</td>
                 <td>
@@ -312,6 +314,58 @@ function renderTodos(todos) {
     table.innerHTML = html.join('');
     todoSection.innerHTML = '';
     todoSection.appendChild(table);
+    // enable drag & drop reordering for todos
+    enableRowReorder(table.querySelector('table.data-table'), '/api/todo/reorder/', 'data-todo-id');
+}
+
+function enableRowReorder(tableEl, endpoint, dataAttrName) {
+    if (!tableEl) return;
+    const tbody = tableEl.querySelector('tbody');
+    let dragSrcEl = null;
+
+    function handleDragStart(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', 'drag'); } catch (err) {}
+        this.classList.add('dragging');
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const target = e.target.closest('tr');
+        if (!target || target === dragSrcEl) return;
+        const rect = target.getBoundingClientRect();
+        const next = (e.clientY - rect.top) / rect.height > 0.5;
+        if (next) {
+            target.parentNode.insertBefore(dragSrcEl, target.nextSibling);
+        } else {
+            target.parentNode.insertBefore(dragSrcEl, target);
+        }
+    }
+
+    function handleDragEnd() {
+        this.classList.remove('dragging');
+        // build new order
+        const ids = Array.from(tbody.querySelectorAll('tr')).map(r => r.getAttribute(dataAttrName));
+        // POST new order to server
+        fetchJson(endpoint, { method: 'POST', body: JSON.stringify({ team_member_id: selectedMemberId, order: ids }) })
+            .then(() => {
+                announceToast('Order saved');
+                // reload data to reflect any server-side normalization
+                loadTeamData();
+            })
+            .catch(err => {
+                console.error(err);
+                announceToast('Failed to save order', 'error');
+            });
+    }
+
+    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+        row.addEventListener('dragstart', handleDragStart, false);
+        row.addEventListener('dragover', handleDragOver, false);
+        row.addEventListener('dragend', handleDragEnd, false);
+    });
 }
 
 function statusLabel(value) {
@@ -398,12 +452,12 @@ function openProjectEdit(projectId = null) {
             <div class="detail-section">
                 <div class="detail-section-title">Documentation</div>
                 ${docsHtml}
-                <button type="button" class="secondary-button" onclick="openDocumentModal(${project.id}, true)">Add document</button>
+                <button type="button" class="secondary-button" onclick="showInlineDocumentForm(${project.id})">Add document</button>
             </div>
             <div class="detail-section">
                 <div class="detail-section-title">Remarks</div>
                 ${remarksHtml}
-                <button type="button" class="secondary-button" onclick="openRemarkModal(${project.id}, true)">Add remark</button>
+                <button type="button" class="secondary-button" onclick="showInlineRemarkForm(${project.id})">Add remark</button>
             </div>
         ` : ''}
         <div class="submit-row"><button type="button" class="secondary-button" onclick="submitProject(${projectId || 'null'})">Save</button></div>
@@ -472,9 +526,57 @@ function submitDocument(projectId, returnToEdit = false, docId = null) {
         .catch(console.error);
 }
 
+function showInlineDocumentForm(projectId) {
+    // Insert an inline form under the Documentation section inside the modal
+    const modal = modalBody;
+    if (!modal) return;
+    // remove existing inline if any
+    const existing = modal.querySelector('.inline-document-form');
+    if (existing) existing.remove();
+    const container = modal.querySelector('.detail-section .detail-section-title')?.parentNode;
+    // find the Documentation detail-section specifically
+    const detailSections = Array.from(modal.querySelectorAll('.detail-section'));
+    let docsSection = null;
+    for (const s of detailSections) {
+        const title = s.querySelector('.detail-section-title');
+        if (title && title.textContent.trim() === 'Documentation') {
+            docsSection = s;
+            break;
+        }
+    }
+    if (!docsSection) return;
+    const form = document.createElement('div');
+    form.className = 'inline-document-form';
+    form.innerHTML = `
+        <div class="form-row"><label>Document name</label><input id="inlineDocName" type="text"></div>
+        <div class="form-row"><label>Document link</label><input id="inlineDocLink" type="url"></div>
+        <div style="display:flex; justify-content:flex-end; gap:12px;"><button type="button" class="secondary-button" id="inlineDocSaveBtn">Save</button></div>
+    `;
+    docsSection.appendChild(form);
+    document.getElementById('inlineDocSaveBtn').onclick = () => submitDocumentInline(projectId);
+}
+
+function submitDocumentInline(projectId) {
+    const nameEl = document.getElementById('inlineDocName');
+    const linkEl = document.getElementById('inlineDocLink');
+    if (!nameEl) return;
+    const data = {
+        project_id: projectId,
+        doc_name: nameEl.value || '',
+        doc_link: linkEl?.value || '',
+    };
+    fetchJson('/api/project/document/', { method: 'POST', body: JSON.stringify(data) })
+        .then(() => loadTeamData())
+        .then(() => openProjectEdit(projectId))
+        .catch(err => {
+            console.error(err);
+            announceToast('Failed to save document', 'error');
+        });
+}
+
 function openRemarkModal(projectId, returnToEdit = false, remarkId = null, author = '', text = '') {
     const content = `
-        <div class="form-row"><label>Your name</label><input id="remarkAuthor" type="text" placeholder="Riyad, Nasir or Shuvo"></div>
+        <div class="form-row"><label>Your name</label><input id="remarkAuthor" type="text" placeholder="Who is adding the remark?"></div>
         <div class="form-row"><label>Remark</label><textarea id="remarkText"></textarea></div>
         <div class="submit-row"><button type="button" class="secondary-button" id="remarkSaveBtn">Save</button></div>
     `;
@@ -506,12 +608,58 @@ function submitRemark(projectId, returnToEdit = false, remarkId = null) {
         .catch(console.error);
 }
 
+function showInlineRemarkForm(projectId) {
+    const modal = modalBody;
+    if (!modal) return;
+    const existing = modal.querySelector('.inline-remark-form');
+    if (existing) existing.remove();
+    const detailSections = Array.from(modal.querySelectorAll('.detail-section'));
+    let remarksSection = null;
+    for (const s of detailSections) {
+        const title = s.querySelector('.detail-section-title');
+        if (title && title.textContent.trim() === 'Remarks') {
+            remarksSection = s;
+            break;
+        }
+    }
+    if (!remarksSection) return;
+    const form = document.createElement('div');
+    form.className = 'inline-remark-form';
+    form.innerHTML = `
+        <div class="form-row"><label>Your name</label><input id="inlineRemarkAuthor" type="text" placeholder="Your name"></div>
+        <div class="form-row"><label>Remark</label><textarea id="inlineRemarkText"></textarea></div>
+        <div style="display:flex; justify-content:flex-end; gap:12px;"><button type="button" class="secondary-button" id="inlineRemarkSaveBtn">Save</button></div>
+    `;
+    remarksSection.appendChild(form);
+    document.getElementById('inlineRemarkSaveBtn').onclick = () => submitRemarkInline(projectId);
+}
+
+function submitRemarkInline(projectId) {
+    const authorEl = document.getElementById('inlineRemarkAuthor');
+    const textEl = document.getElementById('inlineRemarkText');
+    if (!textEl) return;
+    const data = {
+        project_id: projectId,
+        author_name: authorEl?.value || 'Unknown',
+        remark: textEl.value || '',
+    };
+    fetchJson('/api/project/remark/', { method: 'POST', body: JSON.stringify(data) })
+        .then(() => loadTeamData())
+        .then(() => openProjectEdit(projectId))
+        .catch(err => {
+            console.error(err);
+            announceToast('Failed to save remark', 'error');
+        });
+}
+
 function openTodoEdit(todoId = null, note = '', isCompleted = false) {
     const title = todoId ? 'Edit to-do' : 'Add to-do';
     const content = `
         <div class="form-row"><label>Note</label><textarea id="todoNote">${note}</textarea></div>
-        <div class="form-row"><label><input id="todoComplete" type="checkbox" ${isCompleted ? 'checked' : ''}> Mark completed</label></div>
-        <div class="submit-row"><button type="button" class="secondary-button" onclick="submitTodo(${todoId || 'null'})">Save</button></div>
+        <div class="form-row-inline">
+            <label class="checkbox-label"><input id="todoComplete" type="checkbox" ${isCompleted ? 'checked' : ''}> Mark completed</label>
+            <button type="button" class="secondary-button" onclick="submitTodo(${todoId || 'null'})">Save</button>
+        </div>
     `;
     openModal(title, content);
 }

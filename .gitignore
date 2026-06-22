@@ -29,7 +29,9 @@ ENV/
 *.log
 *.pot
 *.pyc
+db.sqlite3
 media/
+staticfiles/
 
 
 # Django migrations (optional: sometimes you keep them)

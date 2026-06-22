@@ -337,3 +337,58 @@ def api_todo_delete(request, todo_id):
         return APIResponse.error(message="Permission denied", status_code=403)
     todo.delete()
     return APIResponse.success(message="To-do deleted")
+
+
+@login_required
+@csrf_exempt
+def api_project_reorder(request):
+    if request.method != "POST":
+        return APIResponse.error(
+            message="Only POST allowed", status_code=Status.HTTP_400_BAD_REQUEST
+        )
+    payload = _json_body(request)
+    member_id = payload.get("team_member_id")
+    order = payload.get("order") or []
+    member = get_object_or_404(TeamMember, pk=member_id)
+    if (
+        request.user.is_authenticated
+        and not request.user.is_superuser
+        and getattr(member, "user", None) != request.user
+    ):
+        return APIResponse.error(message="Permission denied", status_code=403)
+
+    # Update ordering for the projects
+    for idx, pid in enumerate(order):
+        project = Project.objects.filter(pk=pid, team_member=member).first()
+        if project:
+            project.order = idx
+            project.save()
+
+    return APIResponse.success(message="Project order updated")
+
+
+@login_required
+@csrf_exempt
+def api_todo_reorder(request):
+    if request.method != "POST":
+        return APIResponse.error(
+            message="Only POST allowed", status_code=Status.HTTP_400_BAD_REQUEST
+        )
+    payload = _json_body(request)
+    member_id = payload.get("team_member_id")
+    order = payload.get("order") or []
+    member = get_object_or_404(TeamMember, pk=member_id)
+    if (
+        request.user.is_authenticated
+        and not request.user.is_superuser
+        and getattr(member, "user", None) != request.user
+    ):
+        return APIResponse.error(message="Permission denied", status_code=403)
+
+    for idx, tid in enumerate(order):
+        todo = ToDoItem.objects.filter(pk=tid, team_member=member).first()
+        if todo:
+            todo.order = idx
+            todo.save()
+
+    return APIResponse.success(message="To-do order updated")

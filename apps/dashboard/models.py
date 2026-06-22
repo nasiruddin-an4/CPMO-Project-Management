@@ -44,11 +44,12 @@ class Project(models.Model):
     final_status = models.CharField(
         max_length=32, choices=STATUS_CHOICES, default="not_started"
     )
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-updated_at", "project_name"]
+        ordering = ["order"]
 
     def __str__(self):
         return f"{self.project_name} ({self.team_member})"
@@ -87,11 +88,12 @@ class ToDoItem(models.Model):
     )
     note = models.TextField()
     is_completed = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-updated_at"]
+        ordering = ["order"]
 
     def __str__(self):
         return self.note

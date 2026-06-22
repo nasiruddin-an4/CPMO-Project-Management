@@ -31,4 +31,6 @@ urlpatterns = [
     path(
         "api/todo/delete/<int:todo_id>/", views.api_todo_delete, name="api_todo_delete"
     ),
+    path("api/project/reorder/", views.api_project_reorder, name="api_project_reorder"),
+    path("api/todo/reorder/", views.api_todo_reorder, name="api_todo_reorder"),
 ]

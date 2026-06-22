@@ -243,6 +243,15 @@ table.data-table tbody tr:hover {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
 }
 
+table.data-table tbody tr.dragging {
+  opacity: 0.6;
+  outline: 2px dashed rgba(0,0,0,0.08);
+}
+
+table.data-table tbody tr {
+  cursor: move;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -272,10 +281,27 @@ table.data-table tbody tr:hover {
 }
 
 .todo-note {
-  min-width: 240px;
-  max-width: 640px;
+  min-width: 0;
+  max-width: none;
+  width: auto;
   white-space: normal;
   word-break: break-word;
+}
+
+/* Todo table should allow the note column to use all available space */
+table.data-table.todo-table th:nth-child(1),
+table.data-table.todo-table td:nth-child(1) {
+  width: 5%;
+}
+
+table.data-table.todo-table th:nth-child(2),
+table.data-table.todo-table td:nth-child(2) {
+  width: auto;
+}
+
+table.data-table.todo-table th:nth-child(3),
+table.data-table.todo-table td:nth-child(3) {
+  width: 10%;
 }
 
 .action-group {
@@ -519,10 +545,43 @@ table.data-table th {
   min-height: 140px;
 }
 
+.form-row-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-row-inline .checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.form-row-inline .checkbox-label input {
+  width: auto;
+  margin: 0;
+}
+
+.form-row-inline button {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .submit-row {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.inline-document-form, .inline-remark-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
 }
 
 @media (max-width: 900px) {
