@@ -12,7 +12,7 @@
         <header class="page-header">
             <h1>Team 'Operation' - CPMO</h1>
             {% if request.user.is_authenticated %}
-            <div class="auth-links" style="position:absolute; right:28px; top:28px; display:flex; gap:12px; align-items:center;">
+            <div class="auth-links">
                 {% if request.user.is_superuser %}
                 <a class="auth-link" href="{% url 'admin:index' %}">Admin</a>
                 {% endif %}
@@ -43,7 +43,7 @@
 
             <div class="card">
                 <div class="card-title">
-                    <h2>To-Do</h2>
+                    <h2>To-Do (Assigned)</h2>
                     <button id="addTodoBtn" class="secondary-button">Add To-Do</button>
                 </div>
                 <div id="todoSection"></div>

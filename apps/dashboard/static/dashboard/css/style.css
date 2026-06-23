@@ -11,9 +11,6 @@
 }
 
 .page-header .auth-links {
-  position: absolute;
-  right: 28px;
-  top: 28px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -49,14 +46,55 @@ body {
   padding: 24px 28px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
-  text-align: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-header h1 {
-  margin: 0 auto;
+  margin: 0;
   font-size: clamp(1.8rem, 2.2vw, 2.8rem);
-  display: inline-block;
+  flex: 1 1 auto;
+  text-align: center;
   animation: knifeSlide 2.4s ease-in-out infinite alternate;
+}
+
+.page-header .auth-links {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Small screens: stack header and keep auth links inline centered */
+@media (max-width: 600px) {
+  .page-header {
+    flex-direction: column;
+    padding: 18px 16px;
+    text-align: center;
+  }
+
+  .page-header h1 {
+    order: 1;
+  }
+
+  .page-header .auth-links {
+    position: static;
+    order: 2;
+    margin-top: 12px;
+    transform: none;
+    justify-content: center;
+  }
+
+  .page-header .auth-link {
+    padding: 8px 12px;
+    background: var(--surface);
+    color: var(--accent);
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 700;
+  }
 }
 
 @keyframes knifeSlide {
@@ -503,6 +541,64 @@ table.data-table th {
   border-radius: 18px;
   padding: 24px 24px 44px;
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
+}
+
+/* On small screens the modal becomes an anchored, full-height panel for stable viewing */
+@media (max-width: 600px) {
+  .modal-overlay {
+    /* switch to flex so we can anchor to bottom reliably on mobile */
+    display: flex;
+    align-items: flex-end; /* anchor to bottom */
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 12px 12px 0 0;
+    padding: 16px 16px 28px;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.18);
+  }
+}
+
+/* Make modal content stack nicely on small screens */
+@media (max-width: 600px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .detail-pair {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+
+  .detail-full {
+    padding: 12px 12px;
+  }
+
+  .document-line {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .remark-line {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .document-actions {
+    justify-content: flex-end;
+  }
+
+  .modal-card {
+    padding-bottom: 20px;
+  }
 }
 
 .modal-header {
